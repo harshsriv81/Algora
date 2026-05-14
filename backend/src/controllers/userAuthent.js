@@ -8,8 +8,8 @@ const Submission = require("../models/submission")
 const cookieOptions = {
     maxAge: 7 * 24 * 60 * 60 * 1000,
     httpOnly: true,
-    secure: true,      // ✅ required for HTTPS
-    sameSite: 'none'   // ✅ required for cross-domain (Vercel → Render)
+    secure: true,
+    sameSite: 'none'
 };
 
 const register = async (req, res) => {
@@ -37,6 +37,7 @@ const register = async (req, res) => {
         res.cookie('token', token, cookieOptions);
         res.status(201).json({
             user: reply,
+            token: token, // ✅ send token in response body
             message: "Registered Successfully"
         })
     }
@@ -53,7 +54,6 @@ const login = async (req, res) => {
         if (!password) throw new Error("Invalid Credentials");
 
         const user = await User.findOne({ emailId });
-
         if (!user) throw new Error("Invalid Credentials");
 
         const match = await bcrypt.compare(password, user.password);
@@ -75,6 +75,7 @@ const login = async (req, res) => {
         res.cookie('token', token, cookieOptions);
         res.status(201).json({
             user: reply,
+            token: token, // ✅ send token in response body
             message: "Login Successfully"
         })
     }
@@ -85,7 +86,15 @@ const login = async (req, res) => {
 
 const logout = async (req, res) => {
     try {
-        const { token } = req.cookies;
+        let token = req.cookies?.token;
+
+        // ✅ also check Authorization header
+        if (!token && req.headers.authorization) {
+            token = req.headers.authorization.split(' ')[1];
+        }
+
+        if (!token) throw new Error("Token not present");
+
         const payload = jwt.decode(token);
 
         await redisClient.set(`token:${token}`, 'Blocked');
@@ -119,7 +128,10 @@ const adminRegister = async (req, res) => {
         );
 
         res.cookie('token', token, cookieOptions);
-        res.status(201).send("User Registered Successfully");
+        res.status(201).json({
+            token: token, // ✅ send token in response body
+            message: "Admin Registered Successfully"
+        });
     }
     catch (err) {
         res.status(400).send("Error: " + err);
