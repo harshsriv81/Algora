@@ -35,8 +35,9 @@ const userSchema = new Schema({
         type:[{
             type:Schema.Types.ObjectId,
             ref:'problem',
-            unique:true
+            // ✅ removed unique:true — arrays can't be unique
         }],
+        default: [] // ✅ default empty array
     },
     password:{
         type:String,
@@ -51,7 +52,6 @@ userSchema.post('findOneAndDelete', async function (userInfo) {
       await mongoose.model('submission').deleteMany({ userId: userInfo._id });
     }
 });
-
 
 const User = mongoose.model("user",userSchema);
 
